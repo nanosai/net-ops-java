@@ -17,14 +17,17 @@ public class ServerExample {
     public static void main(String[] args) throws IOException {
 
         int tcpPort = 1111;
+        //阻塞队列，放置socket连接
         BlockingQueue acceptedSocketQueue = new ArrayBlockingQueue(1024);
         TcpServer tcpServer = new TcpServer(tcpPort, acceptedSocketQueue);
 
         //Run TcpServer in its own thread. TcpServer listens for incoming connections, and puts the Sockets into a BlockingQueue,
         //for processing by you, or a TcpMessagePort.
         Thread tcpServerThread = new Thread(tcpServer);
+        //启动监听线程，监听连接，有连接则将连接放入阻塞队列
         tcpServerThread.start();
 
+        //启动selector,
         TcpMessagePort tcpMessagePort = createTcpMessagePort(acceptedSocketQueue);
 
         BytesBatch incomingMessageBatch = new BytesBatch(16, 64);
@@ -35,6 +38,7 @@ public class ServerExample {
             tcpMessagePort.addSocketsFromSocketQueue();
 
 
+            //接收客户端发送过来的消息
             tcpMessagePort.readNow(incomingMessageBatch);
 
             for(int i=0; i < incomingMessageBatch.count; i++) {
@@ -44,6 +48,7 @@ public class ServerExample {
                 System.out.println("Processing message " + i);
 
                 //create response
+                //每条接收到的消息都封装发送消息
                 IapMessage outgoingMessage = tcpMessagePort.getWriteMemoryBlock();
                 outgoingMessage.allocate(1024);
                 outgoingMessage.resetReadAndWriteIndexes();

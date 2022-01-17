@@ -21,11 +21,13 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Created by jjenkov on 06-05-2016.
  */
+//socket管理、读写管理、流关闭管理
 public class TcpMessagePort {
 
     // **************************
     // socket management related variables.
     // **************************
+    //socket队列
     private BlockingQueue<SocketChannel> socketQueue    = null;
     private Map<Long, TcpSocket>         socketMap      = new HashMap<>(); //todo replace with faster Long, Object map.
     private List<SocketChannel>          newSocketsTemp = new ArrayList<SocketChannel>();
@@ -159,8 +161,10 @@ public class TcpMessagePort {
         tcpSocket.messageReader = this.messageReaderFactory.createMessageReader();
         tcpSocket.messageReader.init(this.readBytesAllocator, this.readObjectPool);
 
+        //新的socket放入map管理
         this.socketMap.put(tcpSocket.socketId, tcpSocket);
 
+        //向read selector注册
         SelectionKey key = newSocket.register(readSelector, SelectionKey.OP_READ);
         key.attach(tcpSocket);
 

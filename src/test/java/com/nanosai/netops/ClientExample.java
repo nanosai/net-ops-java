@@ -17,16 +17,30 @@ public class ClientExample {
 
     public static void main(String[] args) throws IOException {
 
+        //初始化连接队列queue
+
+        //初始化 消息读取 工厂对象
+        //初始化读写内存分配器 BytesAllocatorAutoDefrag
+        //初始化 消息读写池pool
+        // this.readObjectPool = new ObjectPool<IapMessage>(1024, new IapMessageFactory(this.readBytesAllocator));
+
+        //打开读写的selector
+        //初始化读写buffer
         final TcpMessagePort socketsPort = createTcpMessagePort(new ArrayBlockingQueue(1024));
 
+        //与服务端连接，绑定服务端地址
+        // 初始化与服务器连接的channel,向读的selector注册
+        // 使用channel初始化tcp socket ，tcpSocket绑定了多个对象，如messageReader，内存分配器
         TcpSocket tcpSocket = socketsPort.addSocket("localhost", 1111);
 
         RionWriter rionWriter = new RionWriter().setNestedFieldStack(new int[2]);
 
+        //封装服务端返回的结果
         BytesBatch responses = new BytesBatch(10);
 
         int counter = 0;
         while(true){
+            //封装发送的消息
             IapMessage request = socketsPort.getWriteMemoryBlock();
             request.allocate(1024);
             request.resetReadAndWriteIndexes();
@@ -42,8 +56,10 @@ public class ClientExample {
             request.setTcpSocket(0, tcpSocket);
 
             System.out.println("Sending message " + counter);
+            //向写selector注册channel,并且将待发送的消息放入队列或直接发送
             socketsPort.writeNowOrEnqueue(request);
 
+            //发送消息，并且取消写selector上面的写注册，向取出消息队列的消息，放入写buffer,然后删除消息队列的消息，将消息从buffer中写入channel
             socketsPort.writeBlock();
             System.out.println("Message Sent");
             //request.free();
@@ -52,6 +68,7 @@ public class ClientExample {
             //sleep(100);
 
             //try reading from socketsProxy
+            //接收服务器返回的消息
             System.out.println("Receiving responses");
             int messagesRead = socketsPort.readBlock(responses);
 
